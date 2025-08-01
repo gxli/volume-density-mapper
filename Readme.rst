@@ -35,11 +35,20 @@ If constrained-diffusion is a custom package, clone and install it from its repo
     cd Volume-Density-Mapper
     pip install .
 
+
+or 
     
 .. code-block:: bash
 
+    pip install -i https://test.pypi.org/simple/ volume-density-mapper==0.1.0
+
+
+or 
     
-    pip install -e .
+.. code-block:: bash
+
+    pip install volume-density-mapper==0.1.0
+
 
 
 Example Usage
