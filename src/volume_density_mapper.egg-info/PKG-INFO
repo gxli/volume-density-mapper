@@ -1,3 +1,14 @@
+Metadata-Version: 2.4
+Name: volume-density-mapper
+Version: 0.1.0
+Summary: Reconstructs 3D density distributions from 2D column density maps using constrained diffusion.
+Author-email: Guang-Xing Li <ligx.ngc7293@gmail.com>
+Requires-Python: >=3.8
+Description-Content-Type: text/x-rst
+Requires-Dist: numpy>=1.0.0
+Requires-Dist: scipy>=1.0.0
+Requires-Dist: constrained-diffusion>=0.1.0
+
 3D Density Reconstruction from 2D Column Density
 =================================================
 
@@ -37,8 +48,6 @@ If constrained-diffusion is a custom package, clone and install it from its repo
 
     
 .. code-block:: bash
-
-    
     pip install -e .
 
 
