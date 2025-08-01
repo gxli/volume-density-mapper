@@ -37,7 +37,7 @@ If constrained-diffusion is a custom package, clone and install it from its repo
 
     
 .. code-block:: bash
-
+    pip install -e .
 
 
 Example Usage
