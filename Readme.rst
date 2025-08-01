@@ -116,7 +116,6 @@ Example
     :alt: Alternative text for the image
     :width: 600px
     :height: 400px
-    :alt: Image with Background
     :background: white
     :scale: 50%
     :align: center
@@ -150,7 +149,6 @@ Example
     :width: 600px
     :height: 400px
     :background: white
-    :alt: Image with Background
     :scale: 50%
     :align: center
 
@@ -158,7 +156,6 @@ Example
     :alt: Alternative text for the image
     :width: 600px
     :height: 400px
-    :alt: Image with Background
     :background: white
     :scale: 50%
     :align: center
