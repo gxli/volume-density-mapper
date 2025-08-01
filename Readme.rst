@@ -112,7 +112,7 @@ Example
     plt.imshow(np.log10(nh * mh2), origin = 'lower')
 
 
-.. image:: example/example_files/example_1_2.png
+.. image:: example/example_files/0.jpg
     :alt: Alternative text for the image
     :width: 600px
     :height: 400px
@@ -144,7 +144,7 @@ Example
 
     plt.show()
 
-.. image:: example/example_files/example_2_2.png
+.. image:: example/example_files/1.jpg
     :alt: Alternative text for the image
     :width: 600px
     :height: 400px
@@ -152,7 +152,7 @@ Example
     :scale: 50%
     :align: center
 
-.. image:: example/example_files/example_2_3.png
+.. image:: example/example_files/2.jpg
     :alt: Alternative text for the image
     :width: 600px
     :height: 400px
