@@ -1,3 +1,0 @@
-numpy>=1.0.0
-scipy>=1.0.0
-constrained-diffusion>=0.1.0
