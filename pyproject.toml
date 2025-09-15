@@ -1,15 +1,16 @@
 [project]
 name = "volume-density-mapper"
-version = "0.1.1"
+version = "0.1.2"
 description = "Reconstructs 3D density distributions from 2D column density maps using constrained diffusion."
 readme = "README.rst"
 authors = [
     { name = "Guang-Xing Li", email = "ligx.ngc7293@gmail.com" }
 ]
-requires-python = ">=3.0"
+license = "GPL-3.0-or-later"
+requires-python = ">=3.8"
 dependencies = [
-    "numpy>=1.0.0",
-    "scipy>=1.0.0",
+    "numpy>=1.20.0",
+    "scipy>=1.7.0",
     "constrained-diffusion>=1.2.0"
 ]
 
@@ -17,7 +18,12 @@ dependencies = [
 requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
-
+[tool.setuptools.packages.find]
+where = ["src"]  # Look for packages in the src directory
+include = ["volume_density_mapper*"]  # Include the volume_density_mapper package
 
 [tool.setuptools.package-data]
 volume_density_mapper = ["*.py"]
+
+[project.urls]
+Homepage = "https://github.com/gxli/volume-density-mapper"

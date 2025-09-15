@@ -1,7 +1,8 @@
+LICENSE
 README.rst
 pyproject.toml
-src/__init__.py
-src/density_reconstruction.py
+src/volume_density_mapper/__init__.py
+src/volume_density_mapper/density_reconstruction.py
 src/volume_density_mapper.egg-info/PKG-INFO
 src/volume_density_mapper.egg-info/SOURCES.txt
 src/volume_density_mapper.egg-info/dependency_links.txt
