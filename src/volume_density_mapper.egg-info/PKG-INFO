@@ -1,3 +1,14 @@
+Metadata-Version: 2.4
+Name: volume-density-mapper
+Version: 0.1.1
+Summary: Reconstructs 3D density distributions from 2D column density maps using constrained diffusion.
+Author-email: Guang-Xing Li <ligx.ngc7293@gmail.com>
+Requires-Python: >=3.0
+Description-Content-Type: text/x-rst
+Requires-Dist: numpy>=1.0.0
+Requires-Dist: scipy>=1.0.0
+Requires-Dist: constrained-diffusion>=1.2.0
+
 3D Density Reconstruction from 2D Column Density
 =================================================
 
@@ -40,14 +51,20 @@ or
     
 .. code-block:: bash
 
-    pip install -i https://test.pypi.org/simple/ volume-density-mapper==0.1.1
+    pip install -i https://test.pypi.org/simple/ volume-density-mapper==0.1.0
+
 
 or 
     
 .. code-block:: bash
 
-    pip install volume-density-mapper==0.1.1
-    
+    pip install volume-density-mapper==0.1.0
+
+
+
+Example Usage
+-------------
+
 This example demonstrates how to:
 
 - Estimate characteristic widths and mean density using compute_mean_density_width.
