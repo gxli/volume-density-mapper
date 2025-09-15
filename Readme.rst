@@ -40,8 +40,7 @@ or
     
 .. code-block:: bash
 
-    pip install -i https://test.pypi.org/simple/ volume-density-mapper==0.1.2
-
+    pip install -i https://test.pypi.org/simple/ volume-density-mapper
 or 
     
 .. code-block:: bash
