@@ -167,4 +167,4 @@ Example
 License
 -------
 
-This project is open-source and available under the MIT License.
+This project is open-source and available under the GPL-v3.0 License. See the LICENSE file for details.
