@@ -93,7 +93,7 @@ def process_one_channel(data, scale, dx):
 
     return tcube
 
-def decomposition_to_cube(decomposition, scale_list, dx):
+def decomposition_to_cube(decomposition, scale_list, dx, scale_fz=1):
     """Convert decomposition result into a 3D data cube.
 
     Args:
@@ -108,7 +108,7 @@ def decomposition_to_cube(decomposition, scale_list, dx):
 
     for i, (channel, log_scale) in enumerate(zip(decomposition, scale_list)):
         scale = 2**log_scale  # Convert log scale back to linear
-        tcube = process_one_channel(channel, scale, dx)
+        tcube = process_one_channel(channel, scale * scale_fz, dx)
 
         if data_3d is None:
             data_3d = tcube
@@ -117,7 +117,7 @@ def decomposition_to_cube(decomposition, scale_list, dx):
 
     return data_3d
 
-def density_reconstruction_3d(data_in, dx):
+def density_reconstruction_3d(data_in, dx, scale_fz=1):
     """Reconstruct 3D density from 2D column density.
 
     Args:
@@ -142,5 +142,5 @@ def density_reconstruction_3d(data_in, dx):
         log_scale_base=np.sqrt(2)
     )
     scale_list = np.log2(sc)  # Get logarithmic scales
-    data_3d = decomposition_to_cube(decomp, scale_list, dx)
+    data_3d = decomposition_to_cube(decomp, scale_list, dx, scale_fz=scale_fz)
     return data_3d
