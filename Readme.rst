@@ -41,6 +41,7 @@ or
 .. code-block:: bash
 
     pip install -i https://test.pypi.org/simple/ volume-density-mapper
+
 or 
     
 .. code-block:: bash
@@ -163,7 +164,16 @@ Example
 
     print(np.shape(data3d))
 
+
+
 License
 -------
 
-This project is open-source and available under the GPL-v3.0 License. See the LICENSE file for details.
+This project is open-source and available under the GPL-v3.0 License. See the
+LICENSE file for details.
+
+References
+==========
+
+- Zhao, M., Li, G.-X., Xu, D., & Qiu, K. (2025). Equation vs. AI: Predict density and measure width of molecular clouds by multiscale decomposition. *arXiv preprint arXiv:2508.01130*. https://doi.org/10.48550/arXiv.2508.01130
+- Li, G.-X., & Zhao, M. (2025). Volume Density Mapper: 3D density reconstruction algorithm for molecular clouds. *arXiv preprint arXiv:2509.17369*. https://doi.org/10.48550/arXiv.2509.17369
