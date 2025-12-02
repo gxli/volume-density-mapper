@@ -63,6 +63,7 @@ def compute_mean_density_width(column_density, dx):
     density = column_density / thickness
     return density, width
 
+
 def process_one_channel(data, scale, dx):
     """Process a single scale channel to create a 3D density reconstruction.
 
@@ -77,9 +78,17 @@ def process_one_channel(data, scale, dx):
     thickness = max(data.shape)
     total_mass = data.sum() * dx**2
 
+
+        
     # Create 3D cube with 2D data repeated
     tcube = np.array([data] * thickness)
-
+    
+    
+    if math.isclose(total_mass, 0, abs_tol=1e-9):
+        tcube = tcube * 0
+        return tcube
+        
+        
     # Create Gaussian profile along z-axis
     z_profile = np.zeros(thickness)
     z_profile[thickness // 2] = 1  # Center peak
@@ -91,6 +100,10 @@ def process_one_channel(data, scale, dx):
     # Normalize to conserve mass
     tcube = tcube / tcube.sum() * total_mass / dx**3
 
+    if np.isnan(tcube).any():
+        input("NaN found! Press Enter to continue or Ctrl+C to abort...")
+        
+        
     return tcube
 
 def decomposition_to_cube(decomposition, scale_list, dx, scale_fz=1):
