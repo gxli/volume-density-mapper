@@ -1,6 +1,6 @@
 [project]
 name = "volume-density-mapper"
-version = "0.1.3"
+version = "0.1.4"
 description = "Reconstructs 3D density distributions from 2D column density maps using constrained diffusion."
 readme = "README.rst"
 authors = [

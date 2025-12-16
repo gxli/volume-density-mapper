@@ -46,7 +46,7 @@ or
     
 .. code-block:: bash
 
-    pip install volume-density-mapper==0.1.2
+    pip install volume-density-mapper
     
 This example demonstrates how to:
 
