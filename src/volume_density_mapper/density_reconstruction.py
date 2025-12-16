@@ -1,159 +1,262 @@
-from astropy.io import fits
 import numpy as np
 import math
 from scipy.ndimage import gaussian_filter
-import matplotlib.pyplot as plt
 import constrained_diffusion as cdd
+import warnings
 
-def prepare_cube(data):
-    """Prepare a 3D data cube from the input data.
+# --- Helper Functions for Padding ---
 
-    Args:
-        data (ndarray): 2D input data array.
-
-    Returns:
-        cube (ndarray): 3D data cube with zeros, with depth equal to max dimension of input.
+def _get_pad_info(shape, npad):
     """
-    ny, nx = data.shape
-    nz = max(ny, nx)
-    cube = np.zeros((nz, ny, nx))
-    return cube
+    Calculate padding parameters to center data in a square array 
+    of size (npad * max_dim).
+    """
+    ny, nx = shape
+    nm = max(ny, nx)
+    target_size = int(nm * npad)
+    
+    # Calculate start indices to center the image
+    y_start = (target_size - ny) // 2
+    x_start = (target_size - nx) // 2
+    
+    return target_size, y_start, x_start
 
-def compute_characteristic_scale(input_map, dx=1):
-    """Calculate the characteristic scales of the input map.
+def _pad_data(data, npad):
+    """
+    Pad 2D data to a square size of (npad * max_dim).
+    """
+    if npad < 1:
+        return data, 0, 0
+        
+    ny, nx = data.shape
+    target_size, y_start, x_start = _get_pad_info((ny, nx), npad)
+    
+    # Create zero-filled padded array
+    padded_data = np.zeros((target_size, target_size), dtype=data.dtype)
+    
+    # Insert data in center
+    padded_data[y_start : y_start + ny, x_start : x_start + nx] = data
+    
+    return padded_data, y_start, x_start
+
+def _unpad_data(data, original_shape, y_start, x_start):
+    """
+    Crop data back to original dimensions.
+    """
+    ny, nx = original_shape
+    return data[y_start : y_start + ny, x_start : x_start + nx]
+
+def _slice_decomposition(result, sc, n, verbose=False):
+    """
+    Helper to slice decomposition results if a limit is set.
+    """
+    if n is not None and isinstance(n, int) and n < len(sc):
+        if verbose:
+            print(f"Limiting processing to first {n} scales (out of {len(sc)}).")
+        return result[:n], sc[:n]
+    return result, sc
+
+# --- Main Physics Functions ---
+
+def compute_characteristic_scale(input_map, dx=1, padding=True, npad=2, decomposition_map_n=None, verbose=False):
+    """
+    Calculate the characteristic scales of the input map using Constrained Diffusion Decomposition.
 
     Args:
         input_map (ndarray): 2D array, the input map.
-        dx (float): Pixel size, default is 1 (output width in number of pixels).
+        dx (float): Pixel size.
+        padding (bool): If True, pad input to square * npad.
+        npad (int): Padding factor (result size = npad * max(nx, ny)).
+        decomposition_map_n (int or None): If set, only use the first N scales. 
+                                           Useful for saving computation.
+        verbose (bool): If True, print details.
 
     Returns:
-        width_map (ndarray): 2D array of characteristic scales in the same unit as dx.
+        width_map (ndarray): 2D array of characteristic scales (same shape as input).
     """
+    ny, nx = input_map.shape
+    
+    # Handle Padding
+    if padding:
+        data_to_process, y_start, x_start = _pad_data(input_map, npad)
+        if verbose:
+            print(f"Padding enabled: Input ({ny}x{nx}) -> Padded ({data_to_process.shape[0]}x{data_to_process.shape[1]})")
+    else:
+        data_to_process = input_map
+
+    # Run Decomposition
     result, residual, sc = cdd.constrained_diffusion_decomposition(
-        np.nan_to_num(input_map),
+        np.nan_to_num(data_to_process),
         up_sample=False,
         return_scales=True,
         log_scale_base=np.sqrt(2)
     )
+    
+    # Apply Limit
     result = np.array(result)
-    nz, ny, nx = result.shape
+    result, sc = _slice_decomposition(result, sc, decomposition_map_n, verbose)
+    
+    scale_list = np.log2(sc)
+    
+    if verbose:
+        print(f"Using {len(sc)} scales ranging from {sc[0]:.2f} to {sc[-1]:.2f} pixels.")
 
-    scale_list = np.log2(sc)  # Exponential scale progression
+    # Calculate weighted average scale
     total_weight = np.sum(result, axis=0)
-    total_weight[total_weight == 0] = np.nan  # Avoid division by zero
-    width_map = 2**(np.sum(result * scale_list[:, np.newaxis, np.newaxis], axis=0) / total_weight) * dx
-    width_map[np.isnan(input_map)] = np.nan
+    
+    with np.errstate(divide='ignore', invalid='ignore'):
+        avg_log_scale = np.sum(result * scale_list[:, np.newaxis, np.newaxis], axis=0) / total_weight
+        width_map = (2**avg_log_scale) * dx
+
+    # Handle NaNs/Zeros
+    width_map = np.nan_to_num(width_map, nan=0.0)
+
+    # Un-pad if necessary
+    if padding:
+        width_map = _unpad_data(width_map, (ny, nx), y_start, x_start)
+        # Restore original NaNs from input if they existed
+        width_map[np.isnan(input_map)] = np.nan
+    else:
+        width_map[np.isnan(input_map)] = np.nan
+        
     return width_map
 
-def compute_mean_density_width(column_density, dx):
-    """Calculate the mean density from column density.
+def compute_mean_density_width(column_density, dx, padding=True, npad=2, decomposition_map_n=None, verbose=False):
+    """
+    Calculate the mean volume density from column density.
 
     Args:
-        column_density (ndarray): 2D array, the column density map (g cm^-2).
+        column_density (ndarray): 2D array (g cm^-2).
         dx (float): Pixel size in cm.
+        padding (bool): If True, pad input.
+        npad (int): Padding factor.
+        decomposition_map_n (int or None): If set, only use the first N scales.
+        verbose (bool): If True, print details.
 
     Returns:
         tuple: (mean_density, width)
-            - mean_density (ndarray): 2D array of mean density (g cm^-3).
-            - width (ndarray): 2D array of characteristic scales in cm.
     """
-    width = compute_characteristic_scale(column_density, dx)
-    # Convert FWHM to equivalent thickness
+    width = compute_characteristic_scale(
+        column_density, 
+        dx, 
+        padding=padding, 
+        npad=npad, 
+        decomposition_map_n=decomposition_map_n, 
+        verbose=verbose
+    )
+    
+    # Convert characteristic FWHM-like width to equivalent linear thickness
     thickness = width / np.sqrt(8 * np.log(2)) * (2 * np.sqrt(np.pi))
-    density = column_density / thickness
+    
+    with np.errstate(divide='ignore', invalid='ignore'):
+        density = column_density / thickness
+        
+    density = np.nan_to_num(density, nan=0.0)
+    
     return density, width
 
-
-def process_one_channel(data, scale, dx):
-    """Process a single scale channel to create a 3D density reconstruction.
-
-    Args:
-        data (ndarray): 2D array, input data for this scale.
-        scale (float): Characteristic scale for this channel.
-        dx (float): Pixel size in cm.
-
-    Returns:
-        ndarray: 3D density reconstruction for this channel (g cm^-3).
+def generate_z_profile(nz, scale, scale_fz=1.0):
     """
-    thickness = max(data.shape)
-    total_mass = data.sum() * dx**2
-
-
-        
-    # Create 3D cube with 2D data repeated
-    tcube = np.array([data] * thickness)
-    
-    
-    if math.isclose(total_mass, 0, abs_tol=1e-9):
-        tcube = tcube * 0
-        return tcube
-        
-        
-    # Create Gaussian profile along z-axis
-    z_profile = np.zeros(thickness)
-    z_profile[thickness // 2] = 1  # Center peak
-    z_profile = gaussian_filter(z_profile, scale / np.sqrt(2 * np.log(2)))
-
-    # Apply profile to cube
-    tcube = tcube * z_profile[:, np.newaxis, np.newaxis]
-
-    # Normalize to conserve mass
-    tcube = tcube / tcube.sum() * total_mass / dx**3
-
-    if np.isnan(tcube).any():
-        input("NaN found! Press Enter to continue or Ctrl+C to abort...")
-        
-        
-    return tcube
-
-def decomposition_to_cube(decomposition, scale_list, dx, scale_fz=1):
-    """Convert decomposition result into a 3D data cube.
-
-    Args:
-        decomposition (list): List of 2D arrays from constrained_diffusion_decomposition.
-        scale_list (ndarray): Array of logarithmic scales (log2) from decomposition.
-        dx (float): Pixel size in cm.
-
-    Returns:
-        ndarray: 3D density reconstruction cube (g cm^-3).
+    Generate a normalized 1D Gaussian profile for the Z-axis.
     """
-    data_3d = None
+    profile = np.zeros(nz)
+    mid = nz // 2
+    profile[mid] = 1.0
+    
+    sigma = (scale * scale_fz) / np.sqrt(2 * np.log(2))
+    
+    if sigma > 0:
+        profile = gaussian_filter(profile, sigma=sigma, mode='constant', cval=0.0)
+    
+    total = profile.sum()
+    if total > 0:
+        profile /= total
+    
+    return profile
 
-    for i, (channel, log_scale) in enumerate(zip(decomposition, scale_list)):
-        scale = 2**log_scale  # Convert log scale back to linear
-        tcube = process_one_channel(channel, scale * scale_fz, dx)
-
-        if data_3d is None:
-            data_3d = tcube
-        else:
-            data_3d += tcube
-
-    return data_3d
-
-def density_reconstruction_3d(data_in, dx, scale_fz=1):
-    """Reconstruct 3D density from 2D column density.
+def density_reconstruction_3d(data_in, dx, scale_fz=1.0, padding=True, npad=2, decomposition_map_n=None, verbose=False):
+    """
+    Reconstruct 3D volume density from 2D column density.
 
     Args:
-        data_in (ndarray): 2D column density map (g cm^-2).
+        data_in (ndarray): 2D column density map.
         dx (float): Pixel size in cm.
+        scale_fz (float): Anisotropy factor (Z-stretch).
+        padding (bool): If True, pad input to reduce edge effects.
+        npad (int): Padding factor. Result will be padded to size npad*max(nx,ny).
+        decomposition_map_n (int or None): If set, only process the first N scales.
+                                           Reduces loop iterations and memory usage.
+        verbose (bool): Explicitly print decomposition levels.
 
     Returns:
-        ndarray: 3D density reconstruction (g cm^-3).
-
-    Raises:
-        ValueError: If data_in is not a 2D array or dx is not positive.
+        ndarray: 3D density reconstruction (g cm^-3) with shape (max(ny,nx), ny, nx).
     """
     if not isinstance(data_in, np.ndarray) or data_in.ndim != 2:
         raise ValueError("Input data_in must be a 2D numpy array")
-    if dx <= 0:
-        raise ValueError("Pixel size dx must be positive")
+        
+    ny, nx = data_in.shape
+    # The physical depth of the object is determined by its largest physical dimension
+    nz = max(ny, nx) 
+    
+    # 1. Handle Padding
+    if padding:
+        data_to_process, y_start, x_start = _pad_data(data_in, npad)
+        if verbose:
+            print(f"Padding enabled: Input ({ny}x{nx}) -> Padded ({data_to_process.shape[0]}x{data_to_process.shape[1]})")
+    else:
+        data_to_process = data_in
 
-    decomp, residual, sc = cdd.constrained_diffusion_decomposition(
-        np.nan_to_num(data_in),
+    # 2. Perform Decomposition
+    decomp, _, sc = cdd.constrained_diffusion_decomposition(
+        np.nan_to_num(data_to_process),
         up_sample=False,
         return_scales=True,
         log_scale_base=np.sqrt(2)
     )
-    scale_list = np.log2(sc)  # Get logarithmic scales
-    data_3d = decomposition_to_cube(decomp, scale_list, dx, scale_fz=scale_fz)
-    return data_3d
+    
+    # Apply Limit
+    decomp = list(decomp) # Ensure it's list-like for slicing
+    decomp, sc = _slice_decomposition(decomp, sc, decomposition_map_n, verbose)
+    
+    scale_list = np.log2(sc)
+
+    if verbose:
+        print(f"\n--- Decomposition Levels (Total: {len(sc)}) ---")
+        for i, s in enumerate(sc):
+            print(f"Level {i+1}: Scale = {s:.2f} pix")
+        print("------------------------------------------")
+
+    # 3. Allocate Output Cube (Original dimensions)
+    # We only reconstruct the 'valid' region to save memory, even if CDD used padding
+    final_cube = np.zeros((nz, ny, nx), dtype=np.float32)
+
+    if verbose:
+        print(f"Reconstructing output cube: {nx}x{ny}x{nz}")
+
+    # 4. Iterate over layers
+    for i, (padded_layer, log_scale) in enumerate(zip(decomp, scale_list)):
+        scale = 2**log_scale
+        
+        # If padding was used, crop the layer back to original size BEFORE 3D projection
+        # This ensures we don't waste memory on the padded void
+        if padding:
+            valid_layer = _unpad_data(padded_layer, (ny, nx), y_start, x_start)
+        else:
+            valid_layer = padded_layer
+
+        # Generate Z-profile (scales with anisotropy)
+        z_profile = generate_z_profile(nz, scale, scale_fz)
+        
+        # Calculate volume density for this layer
+        # Density = Column / dx * Profile
+        density_layer = valid_layer / dx 
+        
+        # Accumulate
+        final_cube += density_layer[np.newaxis, :, :] * z_profile[:, np.newaxis, np.newaxis]
+
+    # 5. Final Checks
+    if np.isnan(final_cube).any():
+        warnings.warn("NaNs detected in the reconstructed cube. Replaced with zeros.")
+        final_cube = np.nan_to_num(final_cube)
+
+    return final_cube

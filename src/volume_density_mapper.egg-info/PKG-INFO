@@ -1,6 +1,6 @@
 Metadata-Version: 2.4
 Name: volume-density-mapper
-Version: 0.1.2
+Version: 0.1.3
 Summary: Reconstructs 3D density distributions from 2D column density maps using constrained diffusion.
 Author-email: Guang-Xing Li <ligx.ngc7293@gmail.com>
 License-Expression: GPL-3.0-or-later

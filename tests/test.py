@@ -18,21 +18,28 @@ except ImportError:
     print("To install it, run: pip install pyvista pyqt5")
     print("---")
 
-
 # --- 2. Ensure the custom module can be found ---
 print("Attempting to import `volume_density_mapper` from ../src...")
 try:
     current_dir = os.getcwd()
+    # Point to the 'src' folder
     src_path = os.path.abspath(os.path.join(current_dir, '..', 'src'))
+    
     if src_path not in sys.path:
         sys.path.insert(0, src_path)
-    from density_reconstruction import *
+
+    # UPDATED IMPORT: Include the folder name
+    from volume_density_mapper.density_reconstruction import (
+        density_reconstruction_3d, 
+        compute_mean_density_width
+    )
     print("...Import successful!")
+
 except (ImportError, ModuleNotFoundError) as e:
-    print(f"...Failed to import `volume_density_mapper`: {e}")
-    sys.exit("Please ensure 'volume_density_mapper.py' is in the '../src' directory.")
+    print(f"...Failed to import: {e}")
+    sys.exit("Check that 'density_reconstruction.py' is inside 'src/volume_density_mapper/'")
 except FileNotFoundError:
-    print("...Could not find 'IC348_nh.fits'. Make sure it is in the same directory.")
+    print("...Could not find FITS file.")
     sys.exit()
 
 
